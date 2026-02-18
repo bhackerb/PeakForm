@@ -86,22 +86,22 @@ def _meal_prep_plan(
     lines.append(f"*{note}*\n")
     lines.append(f"**Primary batch (7 servings):** {primary.name}")
     lines.append(
-        f"  Per serving: {primary.kcal:.0f} kcal | "
+        f"Per serving: {primary.kcal:.0f} kcal | "
         f"{primary.protein_g:.0f}g P | {primary.carbs_g:.0f}g C | {primary.fat_g:.0f}g F"
     )
-    lines.append(f"  Use: Mon–Sun dinner\n")
+    lines.append("Use: Mon–Sun dinner\n")
 
-    lines.append(f"**Breakfast/Snack:** Yogurt PB Protein Bowl (daily)")
+    lines.append("**Breakfast/Snack:** Yogurt PB Protein Bowl (daily)")
     yogurt = next(m for m in MEAL_ROTATION if "Yogurt" in m.name)
     lines.append(
-        f"  Per serving: {yogurt.kcal:.0f} kcal | "
+        f"Per serving: {yogurt.kcal:.0f} kcal | "
         f"{yogurt.protein_g:.0f}g P | {yogurt.carbs_g:.0f}g C | {yogurt.fat_g:.0f}g F\n"
     )
 
-    lines.append(f"**Pre-run:** Rice cake + PB + honey (before each morning run)")
+    lines.append("**Pre-run:** Rice cake + PB + honey (before each morning run)")
     prerun = next(m for m in MEAL_ROTATION if "rice cake" in m.name.lower())
     lines.append(
-        f"  Per serving: {prerun.kcal:.0f} kcal | "
+        f"Per serving: {prerun.kcal:.0f} kcal | "
         f"{prerun.protein_g:.0f}g P | {prerun.carbs_g:.0f}g C | {prerun.fat_g:.0f}g F\n"
     )
 
@@ -113,47 +113,48 @@ def _meal_prep_plan(
 
     lines.append("**Estimated daily template (dinner + breakfast bowl + pre-run):**")
     lines.append(
-        f"  {day_cal:.0f} kcal | {day_prot:.0f}g P | {day_carb:.0f}g C | {day_fat:.0f}g F"
+        f"{day_cal:.0f} kcal | {day_prot:.0f}g P | {day_carb:.0f}g C | {day_fat:.0f}g F"
     )
     remaining_cal = cal_target - day_cal
     remaining_prot = prot_target - day_prot
     lines.append(
-        f"  Remaining after template: ~{remaining_cal:.0f} kcal / "
+        f"Remaining after template: ~{remaining_cal:.0f} kcal / "
         f"~{remaining_prot:.0f}g protein to fill with additional snacks/meals.\n"
     )
 
     # Grocery list
-    lines.append("**Grocery list (for 7-serving batch of primary recipe):**")
+    lines.append("**Grocery list**\n")
+    lines.append(f"*{primary.name} — 7-serving batch (Mon–Sun dinner):*")
     if "Jambalaya" in primary.name:
-        lines.append("  - Canned tomatoes (28 oz) × 2")
-        lines.append("  - Vegetable broth (32 oz) × 1")
-        lines.append("  - Brown rice, 2 cups dry")
-        lines.append("  - Black beans, canned (15 oz) × 2")
-        lines.append("  - Red/green bell peppers × 3")
-        lines.append("  - Celery × 4 stalks")
-        lines.append("  - Yellow onion × 1")
-        lines.append("  - Garlic, 6 cloves")
-        lines.append("  - Cajun seasoning, smoked paprika, thyme")
-        lines.append("  - Andouille-style veggie sausage (optional)")
+        lines.append("- Canned tomatoes (28 oz) × 2")
+        lines.append("- Vegetable broth (32 oz) × 1")
+        lines.append("- Brown rice, 2 cups dry")
+        lines.append("- Black beans, canned (15 oz) × 2")
+        lines.append("- Red/green bell peppers × 3")
+        lines.append("- Celery × 4 stalks")
+        lines.append("- Yellow onion × 1")
+        lines.append("- Garlic, 6 cloves")
+        lines.append("- Cajun seasoning, smoked paprika, thyme")
+        lines.append("- Andouille-style veggie sausage (optional)\n")
     else:
-        lines.append("  - Extra-firm tofu (14 oz) × 2 blocks")
-        lines.append("  - Broccoli florets, 2 lbs")
-        lines.append("  - Marinara sauce (24 oz) × 1")
-        lines.append("  - Whole-wheat breadcrumbs, 1/2 cup")
-        lines.append("  - Parmesan or nutritional yeast, 1/2 cup")
-        lines.append("  - Garlic, 4 cloves")
-        lines.append("  - Olive oil, Italian seasoning")
+        lines.append("- Extra-firm tofu (14 oz) × 2 blocks")
+        lines.append("- Broccoli florets, 2 lbs")
+        lines.append("- Marinara sauce (24 oz) × 1")
+        lines.append("- Whole-wheat breadcrumbs, 1/2 cup")
+        lines.append("- Parmesan or nutritional yeast, 1/2 cup")
+        lines.append("- Garlic, 4 cloves")
+        lines.append("- Olive oil, Italian seasoning\n")
 
-    lines.append("\n  **Breakfast bowls (7 days):**")
-    lines.append("  - Greek yogurt (plain, 2% or non-fat), 5–6 cups")
-    lines.append("  - Peanut butter, 7 tbsp")
-    lines.append("  - Protein powder (optional top-up)")
-    lines.append("  - Berries / banana (optional)")
+    lines.append("*Breakfast bowls (7 days):*")
+    lines.append("- Greek yogurt (plain, 2% or non-fat), 5–6 cups")
+    lines.append("- Peanut butter, 7 tbsp")
+    lines.append("- Protein powder (optional top-up)")
+    lines.append("- Berries / banana (optional)\n")
 
-    lines.append("\n  **Pre-run (7 mornings):**")
-    lines.append("  - Rice cakes × 1 pack")
-    lines.append("  - Peanut butter (shared with bowl supply)")
-    lines.append("  - Honey × 1 small jar")
+    lines.append("*Pre-run (7 mornings):*")
+    lines.append("- Rice cakes × 1 pack")
+    lines.append("- Peanut butter (shared with bowl supply)")
+    lines.append("- Honey × 1 small jar")
 
     return "\n".join(lines)
 
@@ -442,7 +443,7 @@ def build(
     if signals:
         lines.append("---\n## 🚦 Trend Signals\n")
         for sig in signals:
-            lines.append(f"{sig.icon} **[{sig.category}]** {sig.message}")
+            lines.append(f"{sig.icon} **[{sig.category}]** {sig.message}\n")
         lines.append("")
 
     # ==================================================================
