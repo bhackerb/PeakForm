@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv
+venv
+env
+
+# Notebooks (not needed at runtime)
+*.ipynb
+
+# Dev / docs
+*.md
+.streamlit/secrets.toml
+
+# OS artifacts
+.DS_Store
+Thumbs.db
