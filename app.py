@@ -194,9 +194,9 @@ if "result" not in st.session_state:
         )
     with c3:
         st.markdown(
-            "### 📈 Charts *(soon)*\n"
-            "Visual trends for weight, mileage, macro adherence, "
-            "and pace — inline with the report."
+            "### 📈 Charts\n"
+            "Interactive trends: weight, mileage, calories, protein, "
+            "pace, strength volume, and plan adherence."
         )
 
     st.stop()
@@ -211,7 +211,7 @@ week_label = result.week_start.strftime("%b %d") + " – " + result.week_end.str
 
 st.markdown(f"## Week of {week_label}")
 
-tab_report, tab_chat = st.tabs(["📊 Weekly Report", "💬 Ask PeakForm"])
+tab_report, tab_chat, tab_charts = st.tabs(["📊 Weekly Report", "💬 Ask PeakForm", "📈 Charts"])
 
 # ── Report tab ──────────────────────────────────────────────────────────────
 with tab_report:
@@ -261,3 +261,82 @@ with tab_chat:
                 st.session_state.messages = []
                 st.session_state.agent.reset()
                 st.rerun()
+
+# ── Charts tab ───────────────────────────────────────────────────────────────
+with tab_charts:
+    from peakform.charts import (
+        adherence_scorecard,
+        calories_vs_target_chart,
+        muscle_group_chart,
+        pace_trend_chart,
+        protein_adherence_chart,
+        weekly_deficit_chart,
+        weekly_mileage_chart,
+        weight_trend_chart,
+    )
+
+    mf = result.mf_data
+    gd = result.garmin_data
+    w_start = result.week_start
+    w_end = result.week_end
+
+    # ── Plan adherence scorecard ─────────────────────────────────────────────
+    st.markdown("### Plan Adherence")
+    try:
+        adh_fig, _ = adherence_scorecard(mf, gd, w_start, w_end)
+        st.plotly_chart(adh_fig, use_container_width=True)
+    except Exception as e:
+        st.warning(f"Adherence scorecard unavailable: {e}")
+
+    st.divider()
+
+    # ── Weight + Mileage side by side ────────────────────────────────────────
+    st.markdown("### Weight & Mileage")
+    col_w, col_m = st.columns(2)
+    with col_w:
+        try:
+            st.plotly_chart(weight_trend_chart(mf), use_container_width=True)
+        except Exception as e:
+            st.warning(f"Weight chart unavailable: {e}")
+    with col_m:
+        try:
+            st.plotly_chart(weekly_mileage_chart(gd), use_container_width=True)
+        except Exception as e:
+            st.warning(f"Mileage chart unavailable: {e}")
+
+    st.divider()
+
+    # ── Nutrition ────────────────────────────────────────────────────────────
+    st.markdown("### Nutrition")
+    col_cal, col_prot = st.columns(2)
+    with col_cal:
+        try:
+            st.plotly_chart(calories_vs_target_chart(mf), use_container_width=True)
+        except Exception as e:
+            st.warning(f"Calories chart unavailable: {e}")
+    with col_prot:
+        try:
+            st.plotly_chart(protein_adherence_chart(mf), use_container_width=True)
+        except Exception as e:
+            st.warning(f"Protein chart unavailable: {e}")
+
+    try:
+        st.plotly_chart(weekly_deficit_chart(mf), use_container_width=True)
+    except Exception as e:
+        st.warning(f"Deficit chart unavailable: {e}")
+
+    st.divider()
+
+    # ── Running & Strength ───────────────────────────────────────────────────
+    st.markdown("### Running & Strength")
+    col_pace, col_mg = st.columns(2)
+    with col_pace:
+        try:
+            st.plotly_chart(pace_trend_chart(gd), use_container_width=True)
+        except Exception as e:
+            st.warning(f"Pace chart unavailable: {e}")
+    with col_mg:
+        try:
+            st.plotly_chart(muscle_group_chart(mf, w_start, w_end), use_container_width=True)
+        except Exception as e:
+            st.warning(f"Muscle group chart unavailable: {e}")
