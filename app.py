@@ -688,7 +688,7 @@ with st.sidebar:
     # ── Footer ───────────────────────────────────────────────────────────────
     st.markdown(
         '<div style="color:rgba(100,116,139,0.4);font-size:0.68rem;text-align:center;padding:1rem 0 0.5rem;">'
-        'v0.3 · <a href="https://github.com/bhackerb/PeakForm-C" '
+        'v0.3 · <a href="https://github.com/bhackerb/peakform" '
         'style="color:rgba(129,140,248,0.5);text-decoration:none;">GitHub</a>'
         "</div>",
         unsafe_allow_html=True,
