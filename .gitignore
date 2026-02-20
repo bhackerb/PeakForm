@@ -16,3 +16,4 @@ build/
 *.csv
 exports/
 data/
+.streamlit/secrets.toml
