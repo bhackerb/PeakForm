@@ -6,6 +6,7 @@ for the specified week, and returns the formatted weekly report.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Optional
 
@@ -14,6 +15,16 @@ import pandas as pd
 from peakform.parsers import macrofactor, garmin
 from peakform.analyzers import running, strength, nutrition, body_comp, signals
 from peakform.report import formatter
+
+
+@dataclass
+class RunResult:
+    """Everything produced by a full analysis run."""
+    report_md: str
+    mf_data: macrofactor.MacroFactorData
+    garmin_data: garmin.GarminData
+    week_start: pd.Timestamp
+    week_end: pd.Timestamp
 
 
 # ---------------------------------------------------------------------------
@@ -126,13 +137,13 @@ def _validate_data_coverage(
 # Main run function
 # ---------------------------------------------------------------------------
 
-def run(
+def run_full(
     mf_filepath: str,
     garmin_filepath: str,
     week: Optional[str] = None,
     verbose: bool = False,
-) -> str:
-    """Run the full weekly analysis and return the Markdown report.
+) -> RunResult:
+    """Run the full weekly analysis and return a RunResult with report + data objects.
 
     Parameters
     ----------
@@ -230,4 +241,20 @@ def run(
         report_md = f"---\n**Data Coverage Warnings:**\n{warn_block}\n\n---\n\n" + report_md
 
     _log("Done.")
-    return report_md
+    return RunResult(
+        report_md=report_md,
+        mf_data=mf_data,
+        garmin_data=garmin_data,
+        week_start=week_start,
+        week_end=week_end,
+    )
+
+
+def run(
+    mf_filepath: str,
+    garmin_filepath: str,
+    week: Optional[str] = None,
+    verbose: bool = False,
+) -> str:
+    """Backward-compatible wrapper — returns just the Markdown report string."""
+    return run_full(mf_filepath, garmin_filepath, week=week, verbose=verbose).report_md
