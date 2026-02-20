@@ -27,15 +27,15 @@ from peakform.config import (
 # Theme
 # ---------------------------------------------------------------------------
 
-_BG = "#0E1117"
-_SURFACE = "#1A1D27"
-_TEXT = "#FAFAFA"
-_GRID = "#2A2D3A"
-_PRIMARY = "#4F8BF9"
-_SUCCESS = "#2ECC71"
-_WARNING = "#F39C12"
-_DANGER = "#E74C3C"
-_MUTED = "#6C757D"
+_BG = "#080c14"
+_SURFACE = "#0d1528"
+_TEXT = "#e2e8f0"
+_GRID = "rgba(129,140,248,0.1)"
+_PRIMARY = "#818cf8"
+_SUCCESS = "#10b981"
+_WARNING = "#f59e0b"
+_DANGER = "#ef4444"
+_MUTED = "#64748b"
 
 _BASE = dict(
     paper_bgcolor=_BG,
@@ -470,9 +470,11 @@ def muscle_group_chart(
         title="Sets by Muscle Group — this week  (green = priority)",
         xaxis_title="Sets",
         height=max(280, len(totals) * 32 + 80),
+    )
+    fig.update_layout(
+        yaxis=dict(gridcolor=_GRID),
         margin=dict(l=130, r=20, t=50, b=40),
     )
-    fig.update_layout(yaxis=dict(gridcolor=_GRID))
     return fig
 
 
