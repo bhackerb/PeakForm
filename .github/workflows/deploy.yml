@@ -112,7 +112,20 @@ jobs:
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-      # ── 5. Deploy to Cloud Run ─────────────────────────────────────────────
+      # ── 5. Clear any Secret Manager-type env vars (prevents type conflict) ──
+      # If APP_PASSWORD or ANTHROPIC_API_KEY were ever set as Secret Manager
+      # references in Cloud Run (instead of plain strings), gcloud refuses to
+      # overwrite them with a literal value. This step removes the secret refs
+      # first; it's a no-op if they're already plain strings or don't exist.
+      - name: Clear secret-type env vars
+        run: |
+          gcloud run services update ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --remove-secrets=APP_PASSWORD,ANTHROPIC_API_KEY \
+            --quiet 2>/dev/null || true
+
+      # ── 6. Deploy to Cloud Run ─────────────────────────────────────────────
       - name: Deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -130,6 +143,6 @@ jobs:
             APP_PASSWORD=${{ secrets.APP_PASSWORD }}
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
 
-      # ── 6. Print the deployed URL ──────────────────────────────────────────
+      # ── 7. Print the deployed URL ──────────────────────────────────────────
       - name: Service URL
         run: echo "Deployed → ${{ steps.deploy.outputs.url }}"
