@@ -1,0 +1,135 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PeakForm — Build & Deploy to Google Cloud Run
+#
+# Triggers on every push to `main`.
+# Builds the Docker image, pushes to Artifact Registry, deploys to Cloud Run.
+#
+# REQUIRED GITHUB SECRETS  (Settings → Secrets → Actions):
+#
+#   Auth — pick ONE method:
+#   ┌──────────────────────────────────────────────────────────────────────┐
+#   │ METHOD 1 (recommended, keyless) — Workload Identity Federation       │
+#   │   WIF_PROVIDER     e.g. projects/123/locations/global/              │
+#   │                         workloadIdentityPools/github/               │
+#   │                         providers/github                            │
+#   │   WIF_SERVICE_ACCOUNT   e.g. peakform-deploy@PROJECT.iam.gserviceaccount.com │
+#   ├──────────────────────────────────────────────────────────────────────┤
+#   │ METHOD 2 (simpler setup) — Service account JSON key                  │
+#   │   GCP_SA_KEY       full JSON key for a service account with:         │
+#   │                       roles/run.admin                                │
+#   │                       roles/iam.serviceAccountUser                   │
+#   │                       roles/artifactregistry.writer                  │
+#   └──────────────────────────────────────────────────────────────────────┘
+#
+#   App config:
+#   GCP_PROJECT_ID      your GCP project id  (e.g. peakform-123456)
+#   APP_PASSWORD        password shown on the PeakForm login screen
+#   ANTHROPIC_API_KEY   Anthropic key (optional — users can enter in-app)
+#
+# REQUIRED GITHUB VARIABLES  (Settings → Variables → Actions):
+#   GCP_REGION          Cloud Run region, e.g. us-central1
+#   AR_REPO             Artifact Registry repo name, e.g. peakform
+#   CLOUDRUN_SERVICE    Cloud Run service name, e.g. peakform
+#
+# FIRST-TIME SETUP (one-time, in Google Cloud):
+#   1. Create Artifact Registry repo:
+#      gcloud artifacts repositories create peakform \
+#        --repository-format=docker --location=us-central1
+#   2. Create a Cloud Run service (or let this workflow create it on first run).
+#   3. Either set up Workload Identity Federation (see link below) OR
+#      create a service account key and paste it as GCP_SA_KEY.
+#
+# WIF setup guide:
+#   https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger from GitHub UI
+
+env:
+  REGION:   ${{ vars.GCP_REGION }}
+  SERVICE:  ${{ vars.CLOUDRUN_SERVICE }}
+  IMAGE:    ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ vars.AR_REPO }}/app
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write   # required for Workload Identity Federation
+
+    steps:
+
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Authenticate with GCP ───────────────────────────────────────────
+      # METHOD 1 — Workload Identity Federation (keyless, recommended)
+      # Delete this block and uncomment METHOD 2 if you're using a SA key.
+      - name: Authenticate (WIF)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account:            ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # METHOD 2 — Service account JSON key (simpler, but stores a secret key)
+      # Uncomment the block below and delete the WIF block above.
+      #
+      # - name: Authenticate (SA key)
+      #   id: auth
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # ── 3. Configure Docker for Artifact Registry ──────────────────────────
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # ── 4. Build & push image (with layer cache) ───────────────────────────
+      - name: Build & push
+        run: |
+          # Pull the previous :latest for layer-cache reuse
+          docker pull $IMAGE:latest 2>/dev/null || true
+
+          docker build \
+            --cache-from $IMAGE:latest \
+            --tag $IMAGE:${{ github.sha }} \
+            --tag $IMAGE:latest \
+            .
+
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+      # ── 5. Deploy to Cloud Run ─────────────────────────────────────────────
+      - name: Deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          region:  ${{ env.REGION }}
+          image:   ${{ env.IMAGE }}:${{ github.sha }}
+          flags:   >-
+            --allow-unauthenticated
+            --memory=512Mi
+            --cpu=1
+            --min-instances=0
+            --max-instances=3
+            --port=8080
+          env_vars: |
+            APP_PASSWORD=${{ secrets.APP_PASSWORD }}
+            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+
+      # ── 6. Print the deployed URL ──────────────────────────────────────────
+      - name: Service URL
+        run: echo "Deployed → ${{ steps.deploy.outputs.url }}"
