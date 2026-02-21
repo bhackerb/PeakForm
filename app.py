@@ -913,7 +913,7 @@ tab_report, tab_charts, tab_smart = st.tabs(
 
 
 # ── Reusable chat panel (used in Report + Charts tabs) ───────────────────────
-def _render_chat_panel() -> None:
+def _render_chat_panel(key: str = "report") -> None:
     st.markdown(
         """
 <div style="
@@ -947,7 +947,7 @@ def _render_chat_panel() -> None:
         _html_chat_history(st.session_state.get("messages", [])),
         unsafe_allow_html=True,
     )
-    with st.form("chat_form", clear_on_submit=True):
+    with st.form(f"chat_form_{key}", clear_on_submit=True):
         user_input = st.text_input(
             "message",
             placeholder="Ask about your data…",
@@ -986,7 +986,7 @@ with tab_report:
             mime="text/markdown",
         )
     with col_c:
-        _render_chat_panel()
+        _render_chat_panel(key="report")
 
 
 # ── Charts tab ────────────────────────────────────────────────────────────────
@@ -1080,7 +1080,7 @@ with tab_charts:
                 st.warning(f"Muscle group chart unavailable: {e}")
 
     with col_cc:
-        _render_chat_panel()
+        _render_chat_panel(key="charts")
 
 
 # ── Smart Plan tab ────────────────────────────────────────────────────────────
