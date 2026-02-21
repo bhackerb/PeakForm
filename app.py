@@ -145,18 +145,25 @@ button[kind="primary"]:disabled {
 /* ── Text / password inputs ─────────────────────────────────────────────── */
 [data-testid="stTextInput"] input,
 [data-testid="stTextArea"] textarea {
-    background: rgba(10, 15, 30, 0.7) !important;
-    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    background: rgba(22, 34, 68, 0.95) !important;
+    border: 1.5px solid rgba(99, 102, 241, 0.5) !important;
     border-radius: 9px !important;
-    color: #e2e8f0 !important;
+    color: #f1f5f9 !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.875rem !important;
-    transition: border-color 0.2s ease !important;
+    caret-color: #a5b4fc !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus {
-    border-color: rgba(129, 140, 248, 0.55) !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+    border-color: rgba(129, 140, 248, 0.85) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 0 12px rgba(129, 140, 248, 0.15) !important;
+    background: rgba(26, 40, 80, 0.98) !important;
+}
+[data-testid="stTextInput"] input::selection,
+[data-testid="stTextArea"] textarea::selection {
+    background: rgba(99, 102, 241, 0.45) !important;
+    color: #fff !important;
 }
 
 /* ── File uploader ──────────────────────────────────────────────────────── */
@@ -439,15 +446,22 @@ label                               { color: #94a3b8 !important; }
 /* ── Number inputs ──────────────────────────────────────────────────────── */
 input[type="number"],
 [data-testid="stNumberInput"] input {
-    background: rgba(10, 15, 30, 0.7) !important;
-    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    background: rgba(22, 34, 68, 0.95) !important;
+    border: 1.5px solid rgba(99, 102, 241, 0.5) !important;
     border-radius: 9px !important;
-    color: #e2e8f0 !important;
+    color: #f1f5f9 !important;
     font-family: 'Inter', sans-serif !important;
+    caret-color: #a5b4fc !important;
+}
+input[type="number"]:focus,
+[data-testid="stNumberInput"] input:focus {
+    border-color: rgba(129, 140, 248, 0.85) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22) !important;
+    background: rgba(26, 40, 80, 0.98) !important;
 }
 
 /* ── Select boxes ───────────────────────────────────────────────────────── */
-[data-testid="stSelectbox"] [data-baseweb="select"] > div { background: rgba(10, 15, 30, 0.7) !important; color: #e2e8f0 !important; border-color: rgba(99, 102, 241, 0.25) !important; }
+[data-testid="stSelectbox"] [data-baseweb="select"] > div { background: rgba(22, 34, 68, 0.95) !important; color: #f1f5f9 !important; border-color: rgba(99, 102, 241, 0.5) !important; border-width: 1.5px !important; }
 [data-baseweb="popover"] [data-baseweb="menu"]             { background: #0d1528 !important; border: 1px solid rgba(99,102,241,0.2) !important; }
 [data-baseweb="option"]                                    { background: transparent !important; color: #cbd5e1 !important; }
 [data-baseweb="option"]:hover                              { background: rgba(99,102,241,0.15) !important; }
@@ -457,7 +471,21 @@ input[type="number"],
 [data-testid="stRadio"]    label p { color: #cbd5e1 !important; }
 
 /* ── Placeholder ────────────────────────────────────────────────────────── */
-::placeholder { color: rgba(148, 163, 184, 0.4) !important; }
+::placeholder { color: rgba(148, 163, 184, 0.6) !important; font-style: italic !important; }
+
+/* ── Chat input — extra visibility inside dark panels ───────────────────── */
+/* Boost contrast: the input sits on near-black; needs a clear navy lift    */
+[data-testid="stForm"] [data-testid="stTextInput"] input {
+    background: rgba(25, 38, 75, 0.98) !important;
+    border: 1.5px solid rgba(129, 140, 248, 0.55) !important;
+    padding: 0.55rem 0.75rem !important;
+    font-size: 0.9rem !important;
+}
+[data-testid="stForm"] [data-testid="stTextInput"] input:focus {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28), 0 0 16px rgba(129, 140, 248, 0.2) !important;
+    background: rgba(30, 46, 90, 0.99) !important;
+}
 
 /* ── Sidebar text ───────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] p     { color: #94a3b8 !important; }
