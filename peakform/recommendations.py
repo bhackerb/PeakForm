@@ -12,7 +12,7 @@ Phases
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import anthropic
 
@@ -52,6 +52,14 @@ class InterviewState:
     proposal_text: str = ""
     use_new_meals: bool = False
     week_template_md: str = ""
+
+    # ── Per-phase coaching chat histories ────────────────────────────────────
+    phase2_messages: list = field(default_factory=list)
+    phase3_messages: list = field(default_factory=list)
+    phase4_messages: list = field(default_factory=list)
+
+    # ── Meal preferences captured via phase 3 dialogue ───────────────────────
+    meal_preferences: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +154,21 @@ _MEAL_ROTATION = """
 | Pre-Run Snack (rice cake + PB + honey) | 175 | 4 | 20 | 9 |
 | Banana Bread (1 slice) | 135 | 5 | 22 | 3 |
 """
+
+
+# ---------------------------------------------------------------------------
+# Chat-history formatting helpers
+# ---------------------------------------------------------------------------
+
+def _format_phase3_chat(messages: list) -> str:
+    """Render phase-3 coaching dialogue for injection into the template prompt."""
+    if not messages:
+        return ""
+    lines = ["## Coaching Dialogue — Meal & Strategy Discussion (Phase 3)"]
+    for m in messages:
+        role = "Ben" if m["role"] == "user" else "Coach"
+        lines.append(f"**{role}:** {m['content']}")
+    return "\n\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +299,10 @@ Every single day MUST hit these targets within the tolerances shown:
 ## Meal Approach
 {meal_instruction}
 
+{f"## User Meal Preferences (from coaching dialogue — honour these exactly)" + chr(10) + st_.meal_preferences if st_.meal_preferences else ""}
+
+{_format_phase3_chat(st_.phase3_messages)}
+
 ---
 ## Required Output Format
 
@@ -337,6 +364,7 @@ Do not round in a way that causes a day to miss the target.
 
 _MODEL_ANALYSIS  = "claude-sonnet-4-5-20250929"   # strong reasoning for analysis/proposal
 _MODEL_TEMPLATE  = "claude-sonnet-4-5-20250929"    # long structured output for template
+_MODEL_CHAT      = "claude-haiku-4-5-20251001"     # fast conversational responses
 
 
 def _call(prompt: str, api_key: str, model: str, max_tokens: int = 4096) -> str:
@@ -391,3 +419,105 @@ def run_template(state: InterviewState, api_key: str) -> str:
         _MODEL_TEMPLATE,
         max_tokens=8000,
     )
+
+
+# ---------------------------------------------------------------------------
+# Per-phase coaching chat
+# ---------------------------------------------------------------------------
+
+def run_phase_chat(phase: int, state: InterviewState, user_message: str, api_key: str) -> str:
+    """Return a coach reply for an in-phase Smart Plan conversation."""
+    client = anthropic.Anthropic(api_key=api_key)
+
+    if phase == 2:
+        system = f"""You are Ben's elite AI performance coach at PeakForm, currently in the \
+Performance Analysis phase.
+
+The analysis you generated:
+{state.analysis_text}
+
+Help Ben understand the analysis, answer follow-up questions, and note any new context \
+he provides (injuries, schedule changes, life stress) that should influence the upcoming \
+strategy proposal. Be concise, direct, and performance-focused."""
+        history = state.phase2_messages
+
+    elif phase == 3:
+        system = f"""You are Ben's elite AI performance coach at PeakForm, in the Strategy \
+Proposal phase.
+
+Current proposal:
+{state.proposal_text}
+
+Ben's macro targets: {state.new_calories:.0f} kcal | \
+{state.new_protein_g:.0f}g P / {state.new_carbs_g:.0f}g C / {state.new_fat_g:.0f}g F
+
+Meal rotation available:
+{_MEAL_ROTATION}
+
+MEAL PLANNING IS COLLABORATIVE — your rules:
+- Ben can request specific meals, swap options, veto anything, or ask for alternatives
+- Acknowledge his preferences explicitly and confirm what will change
+- Suggest macro-verified alternatives when he wants variety
+- Training schedule is AI-recommended; you can discuss adjustments but flag trade-offs
+- All agreed meal changes will automatically flow into the weekly plan when it is generated"""
+        history = state.phase3_messages
+
+    elif phase == 4:
+        system = f"""You are Ben's elite AI performance coach at PeakForm, in the Weekly Plan phase.
+
+Current weekly plan:
+{state.week_template_md}
+
+Ben's macro targets: {state.new_calories:.0f} kcal | \
+{state.new_protein_g:.0f}g P / {state.new_carbs_g:.0f}g C / {state.new_fat_g:.0f}g F
+
+Your role:
+- Discuss any aspect of the plan (timing rationale, meal swaps, training adjustments)
+- If Ben requests changes (swap a meal, modify training for an injury, schedule conflict),  \
+acknowledge the request clearly and specifically — he will then click "Update Plan" to \
+regenerate with those changes applied
+- When confirming changes, be explicit about what will change before the plan is updated."""
+        history = state.phase4_messages
+
+    else:
+        return "Chat is not available for this phase."
+
+    msgs = history + [{"role": "user", "content": user_message}]
+    response = client.messages.create(
+        model=_MODEL_CHAT,
+        max_tokens=1024,
+        system=system,
+        messages=msgs,
+    )
+    return response.content[0].text
+
+
+def run_plan_update(state: InterviewState, api_key: str) -> str:
+    """Regenerate the weekly plan incorporating all phase-4 coaching dialogue."""
+    chat_log = "\n\n".join(
+        f"**{'Ben' if m['role'] == 'user' else 'Coach'}:** {m['content']}"
+        for m in state.phase4_messages
+    )
+    prompt = f"""The following PeakForm weekly plan is currently active:
+
+{state.week_template_md}
+
+Ben has been discussing changes with his coach. Here is the full conversation:
+
+{chat_log}
+
+Generate a COMPLETE UPDATED version of the 7-day plan that incorporates every agreed \
+change from the conversation above.
+
+Hard macro constraints remain unchanged:
+| Macro | Target | Tolerance |
+|-------|--------|-----------|
+| Calories | {state.new_calories:.0f} kcal | ±50 kcal |
+| Protein | {state.new_protein_g:.0f}g | ±5g |
+| Carbs | {state.new_carbs_g:.0f}g | ±10g |
+| Fat | {state.new_fat_g:.0f}g | ±5g |
+
+Begin with a brief **## Change Log** section (bullet list of what changed and why), \
+then output the complete updated 7-day plan in the exact same markdown format as the \
+original. Verify every DAILY TOTAL row before outputting."""
+    return _call(prompt, api_key, _MODEL_TEMPLATE, max_tokens=8000)

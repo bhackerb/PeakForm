@@ -1001,6 +1001,68 @@ def _render_chat_panel(key: str = "report") -> None:
             st.rerun()
 
 
+def _render_smart_plan_chat(phase: int) -> None:
+    """Render the in-phase coaching chat panel for Smart Plan phases 2–4."""
+    from peakform.recommendations import run_phase_chat
+
+    rec = st.session_state.rec
+    phase_attr = f"phase{phase}_messages"
+
+    # Panel header
+    st.markdown(
+        """
+<div style="
+  display:flex;align-items:center;gap:0.5rem;
+  margin-bottom:0.6rem;padding:0.6rem 0.8rem;
+  background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.06));
+  border:1px solid rgba(99,102,241,0.2);border-radius:10px;
+">
+  <span style="font-size:1rem;filter:drop-shadow(0 0 5px rgba(129,140,248,0.5))">💬</span>
+  <span style="
+    background:linear-gradient(135deg,#818cf8,#c084fc);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;font-weight:700;font-size:0.9rem;
+  ">Discuss with Coach</span>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    msgs: list = getattr(rec, phase_attr, [])
+
+    # Chat history
+    st.markdown(_html_chat_history(msgs), unsafe_allow_html=True)
+
+    # Input form
+    with st.form(f"sp_chat_{phase}", clear_on_submit=True):
+        user_input = st.text_input(
+            "sp_msg",
+            placeholder="Ask a question or request a change…",
+            label_visibility="collapsed",
+        )
+        send = st.form_submit_button("Send →", use_container_width=True)
+
+    if send and user_input.strip():
+        if not _api_key():
+            st.error("No API key — set ANTHROPIC_API_KEY.", icon="🔒")
+        else:
+            with st.spinner(""):
+                try:
+                    reply = run_phase_chat(phase, rec, user_input.strip(), _api_key())
+                except Exception as exc:
+                    reply = f"⚠️ Error: {exc}"
+            msgs = getattr(rec, phase_attr, [])
+            msgs.append({"role": "user", "content": user_input.strip()})
+            msgs.append({"role": "assistant", "content": reply})
+            setattr(rec, phase_attr, msgs)
+            st.rerun()
+
+    if getattr(rec, phase_attr, []):
+        if st.button("Clear", key=f"clr_sp{phase}", use_container_width=True):
+            setattr(rec, phase_attr, [])
+            st.rerun()
+
+
 # ── Report tab ────────────────────────────────────────────────────────────────
 with tab_report:
     col_r, col_c = st.columns([3, 1], gap="large")
@@ -1336,23 +1398,27 @@ with tab_smart:
             ),
             unsafe_allow_html=True,
         )
-        st.markdown(rec.analysis_text)
-        st.divider()
 
-        col_fwd, col_bk = st.columns([3, 1], gap="medium")
-        with col_fwd:
-            if st.button("Generate Strategy Proposal →", type="primary", use_container_width=True):
-                with st.spinner("Drafting strategy proposal…"):
-                    try:
-                        rec.proposal_text = run_proposal(rec, _api_key())
-                        rec.phase = 3
-                    except Exception as exc:
-                        st.error(f"Proposal failed: {exc}", icon="🚨")
-                st.rerun()
-        with col_bk:
-            if st.button("← Edit Interview", use_container_width=True):
-                rec.phase = 1
-                st.rerun()
+        col_main, col_chat = st.columns([2, 1], gap="large")
+        with col_main:
+            st.markdown(rec.analysis_text)
+            st.divider()
+            col_fwd, col_bk = st.columns([3, 1], gap="medium")
+            with col_fwd:
+                if st.button("Generate Strategy Proposal →", type="primary", use_container_width=True):
+                    with st.spinner("Drafting strategy proposal…"):
+                        try:
+                            rec.proposal_text = run_proposal(rec, _api_key())
+                            rec.phase = 3
+                        except Exception as exc:
+                            st.error(f"Proposal failed: {exc}", icon="🚨")
+                    st.rerun()
+            with col_bk:
+                if st.button("← Edit Interview", use_container_width=True):
+                    rec.phase = 1
+                    st.rerun()
+        with col_chat:
+            _render_smart_plan_chat(2)
 
     # ── Phase 3 — Strategy Proposal ──────────────────────────────────────────
     elif rec.phase == 3:
@@ -1360,64 +1426,122 @@ with tab_smart:
         st.markdown(
             _html_section_header(
                 "Strategy Proposal",
-                "Review and approve the plan before the weekly template is generated.",
+                "Review and approve the plan — discuss meal preferences with the coach before generating.",
             ),
             unsafe_allow_html=True,
         )
-        st.markdown(rec.proposal_text)
-        st.divider()
 
-        use_new = st.checkbox(
-            "Suggest new meal options (beyond the standard rotation)",
-            value=rec.use_new_meals,
-        )
-        rec.use_new_meals = use_new
+        col_main, col_chat = st.columns([2, 1], gap="large")
+        with col_main:
+            st.markdown(rec.proposal_text)
+            st.divider()
 
-        col_app, col_rev, col_rst = st.columns([3, 2, 1], gap="medium")
-        with col_app:
-            if st.button("✅  Approve & Generate Weekly Plan", type="primary", use_container_width=True):
-                with st.spinner("Building your personalised 7-day plan…"):
-                    try:
-                        rec.week_template_md = run_template(rec, _api_key())
-                        rec.phase = 4
-                    except Exception as exc:
-                        st.error(f"Template generation failed: {exc}", icon="🚨")
-                st.rerun()
-        with col_rev:
-            if st.button("← Revise Analysis", use_container_width=True):
-                rec.phase = 1
-                st.rerun()
-        with col_rst:
-            if st.button("🔄 Reset", use_container_width=True):
-                st.session_state.rec = InterviewState(phase=0)
-                st.rerun()
+            use_new = st.checkbox(
+                "Suggest new meal options (beyond the standard rotation)",
+                value=rec.use_new_meals,
+            )
+            rec.use_new_meals = use_new
+
+            col_app, col_rev, col_rst = st.columns([3, 2, 1], gap="medium")
+            with col_app:
+                if st.button("✅  Approve & Generate Weekly Plan", type="primary", use_container_width=True):
+                    with st.spinner("Building your personalised 7-day plan…"):
+                        try:
+                            rec.week_template_md = run_template(rec, _api_key())
+                            rec.phase = 4
+                        except Exception as exc:
+                            st.error(f"Template generation failed: {exc}", icon="🚨")
+                    st.rerun()
+            with col_rev:
+                if st.button("← Revise Analysis", use_container_width=True):
+                    rec.phase = 1
+                    st.rerun()
+            with col_rst:
+                if st.button("🔄 Reset", use_container_width=True):
+                    st.session_state.rec = InterviewState(phase=0)
+                    st.rerun()
+
+        with col_chat:
+            st.markdown(
+                """
+<div style="
+  background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);
+  border-radius:10px;padding:0.65rem 0.8rem;margin-bottom:0.75rem;
+  font-size:0.78rem;color:rgba(110,231,183,0.85);line-height:1.5;
+">
+  <strong style="color:#6ee7b7;">Meal planning is collaborative.</strong><br>
+  Request specific meals, swap options, or ask for alternatives here.
+  Every agreed change will automatically flow into the weekly plan.
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+            _render_smart_plan_chat(3)
 
     # ── Phase 4 — Weekly Plan ────────────────────────────────────────────────
     elif rec.phase == 4:
+        from peakform.recommendations import run_plan_update
+
         st.markdown(_phase_bar(4), unsafe_allow_html=True)
         st.markdown(
             _html_section_header(
                 "Your Weekly Plan",
-                "Macro-verified · ready to execute.",
+                "Macro-verified · ready to execute · discuss changes with the coach to update.",
             ),
             unsafe_allow_html=True,
         )
-        st.markdown(rec.week_template_md)
 
-        st.divider()
-        col_dl, col_rst2 = st.columns([3, 1], gap="medium")
-        with col_dl:
+        col_main, col_chat = st.columns([2, 1], gap="large")
+        with col_main:
+            st.markdown(rec.week_template_md)
+            st.divider()
             from datetime import date as _date
             filename = f"peakform_plan_{_date.today().strftime('%Y-%m-%d')}.md"
-            st.download_button(
-                label="⬇️  Download Weekly Plan (.md)",
-                data=rec.week_template_md,
-                file_name=filename,
-                mime="text/markdown",
-                use_container_width=True,
-                type="primary",
+            col_dl, col_rst2 = st.columns([3, 1], gap="medium")
+            with col_dl:
+                st.download_button(
+                    label="⬇️  Download Weekly Plan (.md)",
+                    data=rec.week_template_md,
+                    file_name=filename,
+                    mime="text/markdown",
+                    use_container_width=True,
+                    type="primary",
+                )
+            with col_rst2:
+                if st.button("🔄  New Week", use_container_width=True):
+                    st.session_state.rec = InterviewState(phase=0)
+                    st.rerun()
+
+        with col_chat:
+            st.markdown(
+                """
+<div style="
+  background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);
+  border-radius:10px;padding:0.65rem 0.8rem;margin-bottom:0.75rem;
+  font-size:0.78rem;color:rgba(165,180,252,0.85);line-height:1.5;
+">
+  <strong style="color:#a5b4fc;">Mid-week updates welcome.</strong><br>
+  Discuss injury, schedule changes, or meal swaps — then click
+  <em>Update Plan</em> to regenerate.
+</div>
+""",
+                unsafe_allow_html=True,
             )
-        with col_rst2:
-            if st.button("🔄  New Week", use_container_width=True):
-                st.session_state.rec = InterviewState(phase=0)
-                st.rerun()
+            _render_smart_plan_chat(4)
+
+            # Update plan button — only shown when there are phase 4 messages
+            if rec.phase4_messages:
+                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+                if st.button(
+                    "🔄  Update Plan from Chat",
+                    type="primary",
+                    use_container_width=True,
+                    key="update_plan_btn",
+                ):
+                    with st.spinner("Regenerating plan with your changes…"):
+                        try:
+                            rec.week_template_md = run_plan_update(rec, _api_key())
+                            st.success("Plan updated! Scroll left to review the changes.", icon="✅")
+                        except Exception as exc:
+                            st.error(f"Update failed: {exc}", icon="🚨")
+                    st.rerun()
