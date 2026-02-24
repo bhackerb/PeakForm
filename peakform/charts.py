@@ -41,6 +41,7 @@ _BASE = dict(
     paper_bgcolor=_BG,
     plot_bgcolor=_SURFACE,
     font=dict(color=_TEXT, family="sans-serif", size=13),
+    title=dict(font=dict(color="#ffffff", size=15)),
     margin=dict(l=50, r=20, t=50, b=50),
     hovermode="x unified",
     xaxis=dict(gridcolor=_GRID, zeroline=False, showgrid=True),
@@ -385,6 +386,9 @@ def pace_trend_chart(garmin_data) -> go.Figure:
         return _empty_fig("No flat-run pace data available")
 
     df = flat[["date", "avg_pace", "distance_mi"]].dropna(subset=["avg_pace"]).copy()
+    df = df[df["avg_pace"] <= 15.0]          # exclude non-run outliers (>15 min/mi)
+    if df.empty:
+        return _empty_fig("No flat-run pace data available (after filtering)")
     df = df.sort_values("date")
     df["rolling"] = df["avg_pace"].rolling(4, min_periods=2).mean()
 
@@ -582,7 +586,7 @@ def adherence_scorecard(
         font=dict(color=_TEXT, family="sans-serif"),
         title=dict(
             text="Plan Adherence — This Week",
-            font=dict(color=_TEXT, size=15),
+            font=dict(color="#ffffff", size=15),
         ),
         grid=dict(rows=1, columns=4, pattern="independent"),
         height=260,
