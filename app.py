@@ -552,14 +552,12 @@ def _html_week_banner(week_label: str) -> str:
   backdrop-filter: blur(20px);
 ">
   <div>
-    <div style="color:rgba(148,163,184,0.6); font-size:0.72rem; font-weight:600;
+    <div style="color:rgba(148,163,184,0.85); font-size:0.72rem; font-weight:600;
       text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.3rem;">
       Analysis Week
     </div>
     <div style="
-      background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-      background-clip:text;
+      color: #a5b4fc;
       font-size:1.5rem; font-weight:800; letter-spacing:-0.02em;
     ">{week_label}</div>
   </div>
@@ -656,13 +654,21 @@ def _api_key() -> str:
         return ""
 
 
-def _init_agent(result) -> None:
-    """(Re-)initialise the PeakFormAgent if an API key is available."""
+def _init_agent(result, history: list | None = None) -> None:
+    """(Re-)initialise the PeakFormAgent if an API key is available.
+
+    Parameters
+    ----------
+    history : list, optional
+        Prior conversation messages in ``{"role": ..., "content": ...}`` form.
+        When provided (e.g. on session restore) the agent's internal history is
+        seeded so the model retains conversation context across container restarts.
+    """
     key = _api_key()
     if key:
         try:
             from peakform.chat import PeakFormAgent
-            st.session_state.agent = PeakFormAgent(
+            agent = PeakFormAgent(
                 report_md=result.report_md,
                 mf_data=result.mf_data,
                 garmin_data=result.garmin_data,
@@ -670,6 +676,9 @@ def _init_agent(result) -> None:
                 week_end=result.week_end,
                 api_key=key,
             )
+            if history:
+                agent._history = list(history)
+            st.session_state.agent = agent
         except Exception:
             pass
     elif "agent" in st.session_state:
@@ -696,7 +705,8 @@ def _try_restore_state() -> None:
             st.session_state.rec = InterviewState(**filtered)
         else:
             st.session_state.setdefault("rec", InterviewState(phase=0))
-        _init_agent(st.session_state.result)
+        # Seed agent with saved conversation so context is preserved across restarts
+        _init_agent(st.session_state.result, history=st.session_state.messages)
     except Exception:
         pass  # restoration failure is non-fatal — user can re-upload
 
@@ -1067,10 +1077,11 @@ def _render_chat_panel(key: str = "report") -> None:
         unsafe_allow_html=True,
     )
     with st.form(f"chat_form_{key}", clear_on_submit=True):
-        user_input = st.text_input(
+        user_input = st.text_area(
             "message",
             placeholder="Ask about your data…",
             label_visibility="collapsed",
+            height=90,
         )
         send = st.form_submit_button("Send →", use_container_width=True)
 
@@ -1127,10 +1138,11 @@ def _render_smart_plan_chat(phase: int) -> None:
 
     # Input form
     with st.form(f"sp_chat_{phase}", clear_on_submit=True):
-        user_input = st.text_input(
+        user_input = st.text_area(
             "sp_msg",
             placeholder="Ask a question or request a change…",
             label_visibility="collapsed",
+            height=90,
         )
         send = st.form_submit_button("Send →", use_container_width=True)
 
