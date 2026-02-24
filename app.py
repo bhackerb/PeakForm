@@ -552,14 +552,12 @@ def _html_week_banner(week_label: str) -> str:
   backdrop-filter: blur(20px);
 ">
   <div>
-    <div style="color:rgba(148,163,184,0.6); font-size:0.72rem; font-weight:600;
+    <div style="color:rgba(148,163,184,0.85); font-size:0.72rem; font-weight:600;
       text-transform:uppercase; letter-spacing:0.09em; margin-bottom:0.3rem;">
       Analysis Week
     </div>
     <div style="
-      background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-      background-clip:text;
+      color: #a5b4fc;
       font-size:1.5rem; font-weight:800; letter-spacing:-0.02em;
     ">{week_label}</div>
   </div>
