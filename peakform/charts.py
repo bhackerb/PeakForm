@@ -41,7 +41,6 @@ _BASE = dict(
     paper_bgcolor=_BG,
     plot_bgcolor=_SURFACE,
     font=dict(color=_TEXT, family="sans-serif", size=13),
-    title=dict(font=dict(color="#ffffff", size=15)),
     margin=dict(l=50, r=20, t=50, b=50),
     hovermode="x unified",
     xaxis=dict(gridcolor=_GRID, zeroline=False, showgrid=True),
@@ -52,6 +51,11 @@ _BASE = dict(
         font=dict(size=12),
     ),
 )
+
+
+def _title(text: str) -> dict:
+    """White, 15-pt title dict for use in update_layout calls."""
+    return dict(text=text, font=dict(color="#ffffff", size=15))
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +154,7 @@ def weight_trend_chart(mf_data) -> go.Figure:
 
     fig.update_layout(
         **_BASE,
-        title="Weight over Time",
+        title=_title("Weight over Time"),
         yaxis_title="lbs",
     )
     return fig
@@ -201,7 +205,7 @@ def weekly_mileage_chart(garmin_data) -> go.Figure:
 
     fig.update_layout(
         **_BASE,
-        title="Weekly Mileage",
+        title=_title("Weekly Mileage"),
         yaxis_title="Miles",
         barmode="stack",
     )
@@ -266,7 +270,7 @@ def calories_vs_target_chart(mf_data, days: int = 60) -> go.Figure:
 
     fig.update_layout(
         **_BASE,
-        title=f"Daily Calories vs. Target — last {days} days",
+        title=_title(f"Daily Calories vs. Target — last {days} days"),
         yaxis_title="kcal",
     )
     return fig
@@ -323,7 +327,7 @@ def weekly_deficit_chart(mf_data) -> go.Figure:
 
     fig.update_layout(
         **_BASE,
-        title="Weekly Calorie Balance vs. TDEE  (deficit = negative = green)",
+        title=_title("Weekly Calorie Balance vs. TDEE  (deficit = negative = green)"),
         yaxis_title="kcal/day above TDEE",
     )
     return fig
@@ -369,7 +373,7 @@ def protein_adherence_chart(mf_data, days: int = 60) -> go.Figure:
 
     fig.update_layout(
         **_BASE,
-        title=f"Daily Protein vs. Target — last {days} days",
+        title=_title(f"Daily Protein vs. Target — last {days} days"),
         yaxis_title="Protein (g)",
     )
     return fig
@@ -418,7 +422,7 @@ def pace_trend_chart(garmin_data) -> go.Figure:
     y_max = df["avg_pace"].max()
     pad = (y_max - y_min) * 0.12 if y_max > y_min else 0.5
 
-    fig.update_layout(**_BASE, title="Flat-Run Pace Trend  (lower = faster)")
+    fig.update_layout(**_BASE, title=_title("Flat-Run Pace Trend  (lower = faster)"))
     fig.update_layout(yaxis=dict(
         title="min/mile",
         range=[y_max + pad, y_min - pad],
@@ -471,7 +475,7 @@ def muscle_group_chart(
 
     fig.update_layout(
         **_BASE,
-        title="Sets by Muscle Group — this week  (green = priority)",
+        title=_title("Sets by Muscle Group — this week  (green = priority)"),
         xaxis_title="Sets",
         height=max(280, len(totals) * 32 + 80),
     )
@@ -584,10 +588,7 @@ def adherence_scorecard(
     fig.update_layout(
         paper_bgcolor=_BG,
         font=dict(color=_TEXT, family="sans-serif"),
-        title=dict(
-            text="Plan Adherence — This Week",
-            font=dict(color="#ffffff", size=15),
-        ),
+        title=_title("Plan Adherence — This Week"),
         grid=dict(rows=1, columns=4, pattern="independent"),
         height=260,
         margin=dict(l=10, r=10, t=55, b=10),
