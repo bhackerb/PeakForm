@@ -53,11 +53,6 @@ _BASE = dict(
 )
 
 
-def _title(text: str) -> dict:
-    """White, 15-pt title dict for use in update_layout calls."""
-    return dict(text=text, font=dict(color="#ffffff", size=15))
-
-
 # ---------------------------------------------------------------------------
 # Column-finding helper
 # ---------------------------------------------------------------------------
@@ -152,9 +147,11 @@ def weight_trend_chart(mf_data) -> go.Figure:
             annotation_font=dict(color=_WARNING, size=10),
         )
 
+    fig.update_layout(**_BASE)
     fig.update_layout(
-        **_BASE,
-        title=_title("Weight over Time"),
+        title_text="Weight over Time",
+        title_font_color="#ffffff",
+        title_font_size=15,
         yaxis_title="lbs",
     )
     return fig
@@ -203,11 +200,12 @@ def weekly_mileage_chart(garmin_data) -> go.Figure:
             hovertemplate="Week of %{x|%b %d}: %{y:.1f} mi trail<extra></extra>",
         ))
 
+    fig.update_layout(**_BASE, barmode="stack")
     fig.update_layout(
-        **_BASE,
-        title=_title("Weekly Mileage"),
+        title_text="Weekly Mileage",
+        title_font_color="#ffffff",
+        title_font_size=15,
         yaxis_title="Miles",
-        barmode="stack",
     )
     return fig
 
@@ -268,9 +266,11 @@ def calories_vs_target_chart(mf_data, days: int = 60) -> go.Figure:
         annotation_font=dict(color=_WARNING, size=11),
     )
 
+    fig.update_layout(**_BASE)
     fig.update_layout(
-        **_BASE,
-        title=_title(f"Daily Calories vs. Target — last {days} days"),
+        title_text=f"Daily Calories vs. Target — last {days} days",
+        title_font_color="#ffffff",
+        title_font_size=15,
         yaxis_title="kcal",
     )
     return fig
@@ -325,9 +325,11 @@ def weekly_deficit_chart(mf_data) -> go.Figure:
     ))
     fig.add_hline(y=0, line_color=_TEXT, line_width=1)
 
+    fig.update_layout(**_BASE)
     fig.update_layout(
-        **_BASE,
-        title=_title("Weekly Calorie Balance vs. TDEE  (deficit = negative = green)"),
+        title_text="Weekly Calorie Balance vs. TDEE  (deficit = negative = green)",
+        title_font_color="#ffffff",
+        title_font_size=15,
         yaxis_title="kcal/day above TDEE",
     )
     return fig
@@ -371,9 +373,11 @@ def protein_adherence_chart(mf_data, days: int = 60) -> go.Figure:
         annotation_font=dict(color=_SUCCESS, size=11),
     )
 
+    fig.update_layout(**_BASE)
     fig.update_layout(
-        **_BASE,
-        title=_title(f"Daily Protein vs. Target — last {days} days"),
+        title_text=f"Daily Protein vs. Target — last {days} days",
+        title_font_color="#ffffff",
+        title_font_size=15,
         yaxis_title="Protein (g)",
     )
     return fig
@@ -422,7 +426,12 @@ def pace_trend_chart(garmin_data) -> go.Figure:
     y_max = df["avg_pace"].max()
     pad = (y_max - y_min) * 0.12 if y_max > y_min else 0.5
 
-    fig.update_layout(**_BASE, title=_title("Flat-Run Pace Trend  (lower = faster)"))
+    fig.update_layout(**_BASE)
+    fig.update_layout(
+        title_text="Flat-Run Pace Trend  (lower = faster)",
+        title_font_color="#ffffff",
+        title_font_size=15,
+    )
     fig.update_layout(yaxis=dict(
         title="min/mile",
         range=[y_max + pad, y_min - pad],
@@ -473,11 +482,12 @@ def muscle_group_chart(
         hovertemplate="%{y}: %{x:.0f} sets<extra></extra>",
     ))
 
+    fig.update_layout(**_BASE, height=max(280, len(totals) * 32 + 80))
     fig.update_layout(
-        **_BASE,
-        title=_title("Sets by Muscle Group — this week  (green = priority)"),
+        title_text="Sets by Muscle Group — this week  (green = priority)",
+        title_font_color="#ffffff",
+        title_font_size=15,
         xaxis_title="Sets",
-        height=max(280, len(totals) * 32 + 80),
     )
     fig.update_layout(
         yaxis=dict(gridcolor=_GRID),
@@ -588,9 +598,13 @@ def adherence_scorecard(
     fig.update_layout(
         paper_bgcolor=_BG,
         font=dict(color=_TEXT, family="sans-serif"),
-        title=_title("Plan Adherence — This Week"),
         grid=dict(rows=1, columns=4, pattern="independent"),
         height=260,
         margin=dict(l=10, r=10, t=55, b=10),
+    )
+    fig.update_layout(
+        title_text="Plan Adherence — This Week",
+        title_font_color="#ffffff",
+        title_font_size=15,
     )
     return fig, scores
