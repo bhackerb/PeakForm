@@ -292,6 +292,40 @@ hr {
     border-radius: 10px;
 }
 
+/* ── Full-width AI Coach tab chat ───────────────────────────────────────── */
+.pf-msg-user-full {
+    background: rgba(99, 102, 241, 0.18);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 14px 14px 4px 14px;
+    padding: 0.85rem 1.1rem;
+    margin: 0.5rem 0 0.5rem 4rem;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+.pf-msg-assistant-full {
+    background: rgba(17, 24, 39, 0.85);
+    border: 1px solid rgba(129, 140, 248, 0.18);
+    border-radius: 14px 14px 14px 4px;
+    padding: 0.85rem 1.1rem;
+    margin: 0.5rem 4rem 0.5rem 0;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+.pf-chat-history-full {
+    min-height: 200px;
+    max-height: 62vh;
+    overflow-y: auto;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 1rem;
+}
+.pf-chat-history-full::-webkit-scrollbar { width: 4px; }
+.pf-chat-history-full::-webkit-scrollbar-thumb {
+    background: rgba(129, 140, 248, 0.3);
+    border-radius: 10px;
+}
+
 /* ── Markdown typography — full scale ───────────────────────────────────── */
 /*
    Major-third scale (×1.250) anchored at 1rem = 16 px
@@ -601,6 +635,34 @@ def _html_feature_card(icon: str, title: str, body: str, glow_color: str = "#636
   <div style="color:rgba(148,163,184,0.7);font-size:0.83rem;line-height:1.55;">{body}</div>
 </div>
 """
+
+
+def _html_chat_history_full(messages: list) -> str:
+    """Full-width chat history for the dedicated AI Coach tab."""
+    if not messages:
+        return """
+<div style="text-align:center;padding:4rem 0;color:rgba(100,116,139,0.4);font-size:0.9rem;line-height:1.9;">
+  <div style="font-size:2.5rem;margin-bottom:0.75rem;opacity:0.3">🤖</div>
+  No messages yet.<br>Use the prompts above or type a question below.
+</div>"""
+    items = []
+    for msg in messages[-20:]:  # show last 20
+        role = msg["role"]
+        content = msg["content"]
+        safe = (content
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\n", "<br>"))
+        if role == "user":
+            items.append(f"""
+<div class="pf-msg-label pf-msg-label-user">You</div>
+<div class="pf-msg-user-full">{safe}</div>""")
+        else:
+            items.append(f"""
+<div class="pf-msg-label pf-msg-label-coach">🏔 Coach</div>
+<div class="pf-msg-assistant-full">{safe}</div>""")
+    return f'<div class="pf-chat-history-full">{"".join(items)}</div>'
 
 
 def _html_chat_history(messages: list) -> str:
@@ -1036,72 +1098,9 @@ week_label = (
 
 st.markdown(_html_week_banner(week_label), unsafe_allow_html=True)
 
-tab_report, tab_charts, tab_smart = st.tabs(
-    ["📊  Weekly Report", "📈  Charts", "🎯  Smart Plan"]
+tab_report, tab_charts, tab_smart, tab_coach = st.tabs(
+    ["📊  Weekly Report", "📈  Charts", "🎯  Smart Plan", "🤖  AI Coach"]
 )
-
-
-# ── Reusable chat panel (used in Report + Charts tabs) ───────────────────────
-def _render_chat_panel(key: str = "report") -> None:
-    st.markdown(
-        """
-<div style="
-  background:linear-gradient(180deg,rgba(12,17,32,0.95) 0%,rgba(13,21,40,0.98) 100%);
-  border:1px solid rgba(99,102,241,0.2);border-radius:16px;
-  padding:1rem 1rem 0.75rem;margin-top:0.1rem;
-">
-  <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-    <span style="font-size:1.1rem;filter:drop-shadow(0 0 6px rgba(129,140,248,0.6))">🤖</span>
-    <span style="
-      background:linear-gradient(135deg,#818cf8,#c084fc);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-      background-clip:text;font-weight:700;font-size:0.95rem;
-    ">AI Coach</span>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-    if "agent" not in st.session_state:
-        st.markdown(
-            '<div style="color:rgba(100,116,139,0.6);font-size:0.8rem;'
-            'text-align:center;padding:1.5rem 0.5rem;">'
-            "Run an analysis to<br>activate the AI Coach."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-        return
-
-    st.markdown(
-        _html_chat_history(st.session_state.get("messages", [])),
-        unsafe_allow_html=True,
-    )
-    with st.form(f"chat_form_{key}", clear_on_submit=True):
-        user_input = st.text_area(
-            "message",
-            placeholder="Ask about your data…",
-            label_visibility="collapsed",
-            height=90,
-        )
-        send = st.form_submit_button("Send →", use_container_width=True)
-
-    if send and user_input.strip():
-        msgs = st.session_state.setdefault("messages", [])
-        msgs.append({"role": "user", "content": user_input.strip()})
-        with st.spinner(""):
-            try:
-                reply = st.session_state.agent.chat(user_input.strip())
-            except Exception as exc:
-                reply = f"⚠️ Error: {exc}"
-        msgs.append({"role": "assistant", "content": reply})
-        _persist_save_messages()
-        st.rerun()
-
-    if st.session_state.get("messages"):
-        if st.button("Clear chat", use_container_width=True):
-            st.session_state.messages = []
-            st.session_state.agent.reset()
-            st.rerun()
 
 
 def _render_smart_plan_chat(phase: int) -> None:
@@ -1170,18 +1169,14 @@ def _render_smart_plan_chat(phase: int) -> None:
 
 # ── Report tab ────────────────────────────────────────────────────────────────
 with tab_report:
-    col_r, col_c = st.columns([2, 1], gap="large")
-    with col_r:
-        st.markdown(result.report_md)
-        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-        st.download_button(
-            label="⬇️  Download report (.md)",
-            data=result.report_md,
-            file_name=f"peakform_report_{result.week_start.strftime('%Y-%m-%d')}.md",
-            mime="text/markdown",
-        )
-    with col_c:
-        _render_chat_panel(key="report")
+    st.markdown(result.report_md)
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    st.download_button(
+        label="⬇️  Download report (.md)",
+        data=result.report_md,
+        file_name=f"peakform_report_{result.week_start.strftime('%Y-%m-%d')}.md",
+        mime="text/markdown",
+    )
 
 
 # ── Charts tab ────────────────────────────────────────────────────────────────
@@ -1203,8 +1198,7 @@ with tab_charts:
     w_end = result.week_end
     _PC = dict(use_container_width=True, config={"displayModeBar": False})
 
-    col_ch, col_cc = st.columns([2, 1], gap="large")
-    with col_ch:
+    with st.container():
         st.markdown(
             _html_section_header("Plan Adherence", "How closely did this week match the targets?"),
             unsafe_allow_html=True,
@@ -1274,8 +1268,6 @@ with tab_charts:
             except Exception as e:
                 st.warning(f"Muscle group chart unavailable: {e}")
 
-    with col_cc:
-        _render_chat_panel(key="charts")
 
 
 # ── Smart Plan tab ────────────────────────────────────────────────────────────
@@ -1683,3 +1675,113 @@ with tab_smart:
                             st.error(f"Update failed: {_err}", icon="🚨")
                         else:
                             st.rerun()
+
+
+# ── AI Coach tab ──────────────────────────────────────────────────────────────
+with tab_coach:
+
+    # Header
+    st.markdown(
+        """
+<div style="
+  display:flex;align-items:center;gap:0.9rem;
+  background:linear-gradient(135deg,rgba(99,102,241,0.1) 0%,rgba(139,92,246,0.07) 100%);
+  border:1px solid rgba(99,102,241,0.2);border-radius:16px;
+  padding:1.1rem 1.5rem;margin-bottom:1.5rem;
+">
+  <span style="font-size:2rem;filter:drop-shadow(0 0 12px rgba(129,140,248,0.65))">🤖</span>
+  <div>
+    <div style="
+      background:linear-gradient(135deg,#818cf8,#c084fc);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;font-size:1.35rem;font-weight:800;letter-spacing:-0.02em;
+    ">AI Coach</div>
+    <div style="color:rgba(148,163,184,0.6);font-size:0.82rem;margin-top:0.15rem;">
+      Personal fitness &amp; nutrition coach — full context of your weekly data.
+    </div>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    if "agent" not in st.session_state:
+        st.info(
+            "Upload your data files and click **▶ Run Analysis** in the sidebar to activate the AI Coach.",
+            icon="💡",
+        )
+    else:
+        _coach_messages = st.session_state.get("messages", [])
+
+        # Suggested prompts — only shown when there are no messages yet
+        if not _coach_messages:
+            st.markdown(
+                '<div style="color:rgba(148,163,184,0.55);font-size:0.8rem;'
+                'margin-bottom:0.6rem;font-weight:500;">Try asking…</div>',
+                unsafe_allow_html=True,
+            )
+            _PROMPTS = [
+                "Summarise my key wins and misses this week.",
+                "How was my protein adherence?",
+                "What should I focus on for next week?",
+                "Am I on track for my weight goal?",
+                "How did my run pace compare to my 4-run average?",
+            ]
+            _p_cols = st.columns(len(_PROMPTS), gap="small")
+            for _col, _prompt in zip(_p_cols, _PROMPTS):
+                with _col:
+                    if st.button(
+                        _prompt,
+                        use_container_width=True,
+                        key=f"coach_prompt_{_PROMPTS.index(_prompt)}",
+                    ):
+                        _msgs = st.session_state.setdefault("messages", [])
+                        _msgs.append({"role": "user", "content": _prompt})
+                        with st.spinner(""):
+                            try:
+                                _reply = st.session_state.agent.chat(_prompt)
+                            except Exception as _exc:
+                                _reply = f"⚠️ Error: {_exc}"
+                        _msgs.append({"role": "assistant", "content": _reply})
+                        _persist_save_messages()
+                        st.rerun()
+
+            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+
+        # Chat history (full-width, large bubbles)
+        st.markdown(
+            _html_chat_history_full(st.session_state.get("messages", [])),
+            unsafe_allow_html=True,
+        )
+
+        # Input form
+        with st.form("coach_main_form", clear_on_submit=True):
+            _user_input = st.text_area(
+                "message",
+                placeholder="Ask about your training, nutrition, or anything in your data…",
+                label_visibility="collapsed",
+                height=90,
+            )
+            _send = st.form_submit_button(
+                "Send  →",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if _send and _user_input.strip():
+            _msgs = st.session_state.setdefault("messages", [])
+            _msgs.append({"role": "user", "content": _user_input.strip()})
+            with st.spinner(""):
+                try:
+                    _reply = st.session_state.agent.chat(_user_input.strip())
+                except Exception as _exc:
+                    _reply = f"⚠️ Error: {_exc}"
+            _msgs.append({"role": "assistant", "content": _reply})
+            _persist_save_messages()
+            st.rerun()
+
+        if st.session_state.get("messages"):
+            if st.button("Clear conversation", key="coach_clear_btn"):
+                st.session_state.messages = []
+                st.session_state.agent.reset()
+                st.rerun()
