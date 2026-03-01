@@ -1149,7 +1149,7 @@ def _render_smart_plan_chat(phase: int) -> None:
         if not _api_key():
             st.error("No API key — set ANTHROPIC_API_KEY.", icon="🔒")
         else:
-            with st.spinner(""):
+            with st.spinner("Coach is thinking…"):
                 try:
                     reply = run_phase_chat(phase, rec, user_input.strip(), _api_key())
                 except Exception as exc:
@@ -1737,7 +1737,7 @@ with tab_coach:
                     ):
                         _msgs = st.session_state.setdefault("messages", [])
                         _msgs.append({"role": "user", "content": _prompt})
-                        with st.spinner(""):
+                        with st.spinner("Coach is thinking…"):
                             try:
                                 _reply = st.session_state.agent.chat(_prompt)
                             except Exception as _exc:
@@ -1771,7 +1771,7 @@ with tab_coach:
         if _send and _user_input.strip():
             _msgs = st.session_state.setdefault("messages", [])
             _msgs.append({"role": "user", "content": _user_input.strip()})
-            with st.spinner(""):
+            with st.spinner("Coach is thinking…"):
                 try:
                     _reply = st.session_state.agent.chat(_user_input.strip())
                 except Exception as _exc:

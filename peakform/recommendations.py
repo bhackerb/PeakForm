@@ -288,6 +288,25 @@ Reason: [2 sentences]
 
 
 def build_template_prompt(st_: InterviewState, meal_instruction: str) -> str:
+    # Build the Phase 3 coaching block — treated as hard requirements, not suggestions
+    coaching_block = ""
+    if st_.phase3_messages:
+        coaching_block = (
+            "## ⚠️ HARD REQUIREMENTS from Pre-Approval Coaching Dialogue\n"
+            "Ben discussed and agreed on specific meal changes with his coach "
+            "before approving this plan. Every agreed change below is a **hard requirement** "
+            "— treat it with the same authority as the macro constraints. "
+            "Do NOT revert to defaults for anything explicitly requested or confirmed in this dialogue.\n\n"
+            + _format_phase3_chat(st_.phase3_messages)
+        )
+
+    meal_pref_block = ""
+    if st_.meal_preferences:
+        meal_pref_block = (
+            "## Additional Meal Preferences (honour exactly)\n"
+            + st_.meal_preferences
+        )
+
     return f"""Generate a complete, finalized **7-day PeakForm Weekly Plan** as clean Markdown.
 
 ## Approved Strategy
@@ -302,15 +321,15 @@ Every single day MUST hit these targets within the tolerances shown:
 | Carbs | {st_.new_carbs_g:.0f}g | ±10g |
 | Fat | {st_.new_fat_g:.0f}g | ±5g |
 
+{coaching_block}
+
+{meal_pref_block}
+
 ## Meal Options (use exact macro values)
 {_MEAL_ROTATION}
 
 ## Meal Approach
 {meal_instruction}
-
-{f"## User Meal Preferences (from coaching dialogue — honour these exactly)" + chr(10) + st_.meal_preferences if st_.meal_preferences else ""}
-
-{_format_phase3_chat(st_.phase3_messages)}
 
 ---
 ## Required Output Format
