@@ -73,6 +73,13 @@ def _fmt_pace(dec_min: float) -> str:
     return f"{total_sec // 60}:{total_sec % 60:02d}/mi"
 
 
+def _f(val, fmt: str, fallback: str = "N/A") -> str:
+    """Format *val* with the given format spec, returning *fallback* if val is None."""
+    if val is None:
+        return fallback
+    return format(val, fmt)
+
+
 def _running_ctx(ra) -> str:
     cur, avg = ra.current, ra.rolling_4wk
     lines = [
@@ -107,13 +114,15 @@ def _running_ctx(ra) -> str:
 
 def _nutrition_ctx(na) -> str:
     cur = na.current
+    cal_pct = na.calories_pct_target * 100 if na.calories_pct_target is not None else None
+    prot_pct = na.protein_hit_rate * 100 if na.protein_hit_rate is not None else None
     lines = [
-        f"- Avg calories: **{cur.avg_calories:.0f} kcal** "
-        f"(target {cur.target_calories:.0f} — {na.calories_pct_target * 100:.0f}% achieved)",
-        f"- Avg protein: **{cur.avg_protein_g:.0f}g** "
-        f"(target {cur.target_protein_g:.0f}g — hit on {na.protein_hit_rate * 100:.0f}% of days)",
-        f"- Avg carbs: {cur.avg_carbs_g:.0f}g | avg fat: {cur.avg_fat_g:.0f}g",
-        f"- Avg daily deficit vs TDEE: {na.avg_daily_deficit:.0f} kcal",
+        f"- Avg calories: **{_f(cur.avg_calories, '.0f')} kcal** "
+        f"(target {_f(cur.target_calories, '.0f')} — {_f(cal_pct, '.0f')}% achieved)",
+        f"- Avg protein: **{_f(cur.avg_protein_g, '.0f')}g** "
+        f"(target {_f(cur.target_protein_g, '.0f')}g — hit on {_f(prot_pct, '.0f')}% of days)",
+        f"- Avg carbs: {_f(cur.avg_carbs_g, '.0f')}g | avg fat: {_f(cur.avg_fat_g, '.0f')}g",
+        f"- Avg daily deficit vs TDEE: {_f(na.avg_daily_deficit, '.0f')} kcal",
         f"- Logged days this week: {cur.logged_days}/7",
     ]
     flags = []
@@ -128,11 +137,11 @@ def _nutrition_ctx(na) -> str:
 
 def _body_comp_ctx(ba) -> str:
     lines = [
-        f"- Trend weight: {ba.trend_weight_start:.1f} → **{ba.trend_weight_end:.1f} lbs** "
-        f"({ba.trend_net_change_lbs:+.2f} lbs this week)",
-        f"- Direction: **{ba.trend_direction}** | Rate: {ba.weekly_rate_lbs:.2f} lbs/wk",
-        f"- To goal (160 lbs): {ba.pounds_to_goal:.1f} lbs remaining "
-        f"(~{ba.weeks_to_goal:.0f} weeks at current rate)",
+        f"- Trend weight: {_f(ba.trend_weight_start, '.1f')} → **{_f(ba.trend_weight_end, '.1f')} lbs** "
+        f"({_f(ba.trend_net_change_lbs, '+.2f')} lbs this week)",
+        f"- Direction: **{ba.trend_direction}** | Rate: {_f(ba.weekly_rate_lbs, '.2f')} lbs/wk",
+        f"- To goal (160 lbs): {_f(ba.pounds_to_goal, '.1f')} lbs remaining "
+        f"(~{_f(ba.weeks_to_goal, '.0f')} weeks at current rate)",
     ]
     if ba.trend_stalled:
         lines.append("- ⚠️ Trend stalled (<0.1 lb/wk change)")
